@@ -96,7 +96,7 @@ def create_two_cycles_graph_and_save_to_dot_zero_nodes_one_cycle():
             1,
             1,
             ("label_1", "label_2"),
-            f"{EXPECTED_DOTS}/2_vertices_two_cycles_graph.dot",
+            f"{EXPECTED_DOTS}/3_vertices_two_cycles_graph.dot",
         ),
         pytest.param(
             3,
