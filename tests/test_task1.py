@@ -75,14 +75,14 @@ def test_get_graph_meta_data_from_valid_name(
     assert expected == result
 
 
-def create_two_cycles_graph_and_save_to_dot_zero_nodes_both_cycles():
+def test_create_two_cycles_graph_and_save_to_dot_zero_nodes_both_cycles():
     with pytest.raises(IndexError):
         create_two_cycles_graph_and_save_to_dot(
             0, 0, ("label_1", "label_2"), "somepath.dot"
         )
 
 
-def create_two_cycles_graph_and_save_to_dot_zero_nodes_one_cycle():
+def test_create_two_cycles_graph_and_save_to_dot_zero_nodes_one_cycle():
     with pytest.raises(IndexError):
         create_two_cycles_graph_and_save_to_dot(
             1, 0, ("label_1", "label_2"), "somepath.dot"
