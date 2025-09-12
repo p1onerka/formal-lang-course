@@ -1,0 +1,9 @@
+digraph  {
+1;
+0;
+2;
+1 -> 0 [key=0, label="label_1"];
+0 -> 1 [key=0, label="label_1"];
+0 -> 2 [key=0, label="label_2"];
+2 -> 0 [key=0, label="label_2"];
+}
