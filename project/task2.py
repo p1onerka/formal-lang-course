@@ -37,7 +37,7 @@ def _add_states_to_aut(
 
 def _add_transitions_to_aut(
     graph: MultiDiGraph, nfa: NondeterministicFiniteAutomaton
-) -> MultiDiGraph:
+) -> NondeterministicFiniteAutomaton:
     edges = graph.edges(data="label")
     for start, end, label in edges:
         if label is None:
