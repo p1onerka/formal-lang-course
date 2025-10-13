@@ -2,6 +2,7 @@ from typing import Iterable
 from networkx import MultiDiGraph
 from pyformlang.finite_automaton import State, Symbol, NondeterministicFiniteAutomaton
 from scipy.sparse import identity, kron, csr_matrix
+import scipy.sparse as scsp
 
 from project.task2 import regex_to_dfa, graph_to_nfa
 
@@ -13,7 +14,8 @@ class AdjacencyMatrixFA:
     start_states: set[State]
     final_states: set[State]
     labels: set[Symbol]
-    boolean_decompress: dict[Symbol, csr_matrix]
+    boolean_decompress: dict[Symbol, scsp.spmatrix]
+    matrix_format: str
 
     def _print_boolean_decompress_pretty(self):
         for symbol in self.boolean_decompress:
@@ -24,9 +26,12 @@ class AdjacencyMatrixFA:
         self,
         fa: NondeterministicFiniteAutomaton,
         index_mapping: (tuple[dict[State, int], dict[int, State]] | None) = None,
+        matrix_format: str = "csr",
     ):
         self.states = fa.states
         self.labels = fa.symbols
+        self.matrix_format = matrix_format
+        matrix_ctor = getattr(scsp, f"{self.matrix_format}_matrix", csr_matrix)
 
         # for DFA: casting it to NFA
         if not (isinstance(fa.start_states, set)):
@@ -76,11 +81,12 @@ class AdjacencyMatrixFA:
         self.boolean_decompress = dict()
         for symbol in boolean_dec_dict:
             arr = boolean_dec_dict.get(symbol)
-            mat = csr_matrix(arr)
+            mat = matrix_ctor(arr)
             self.boolean_decompress.update({symbol: mat})
 
-    def get_trans_closure(self) -> csr_matrix:
-        E = identity(len(self.states), format="csr", dtype="bool")
+    # cover the return with matrix_ctor?
+    def get_trans_closure(self) -> scsp.spmatrix:
+        E = identity(len(self.states), format=self.matrix_format, dtype="bool")
         sum_m = E
         for symbol in self.boolean_decompress:
             mat = self.boolean_decompress.get(symbol)
@@ -135,7 +141,8 @@ def build_AdjMatrixFA_with_artefacts(
     final_states: set[State],
     index_of_state: dict[State, int],
     state_of_index: dict[int, State],
-    bool_dec: dict[Symbol, csr_matrix],
+    bool_dec: dict[Symbol, scsp.spmatrix],
+    matrix_format: str = "csr",
 ) -> AdjacencyMatrixFA:
     nfa = NondeterministicFiniteAutomaton(
         states=states, start_state=start_states, final_states=final_states
@@ -146,7 +153,7 @@ def build_AdjMatrixFA_with_artefacts(
             for snd_state in states:
                 if mat[index_of_state.get(fst_state), index_of_state.get(snd_state)]:
                     nfa.add_transition(fst_state, symbol, snd_state)
-    mat = AdjacencyMatrixFA(nfa, index_mapping=(index_of_state, state_of_index))
+    mat = AdjacencyMatrixFA(nfa, index_mapping=(index_of_state, state_of_index), matrix_format=matrix_format)
     return mat
 
 
@@ -184,7 +191,7 @@ def intersect_automata(
     for symbol in shared_labels:
         fst_bool_dec = automaton1.boolean_decompress.get(symbol)
         snd_bool_dec = automaton2.boolean_decompress.get(symbol)
-        intersection = kron(fst_bool_dec, snd_bool_dec, format="csr")
+        intersection = kron(fst_bool_dec, snd_bool_dec, format=automaton1.matrix_format)
         new_bool_dec.update({symbol: intersection})
 
     return build_AdjMatrixFA_with_artefacts(
@@ -194,15 +201,16 @@ def intersect_automata(
         intersection_idxes,
         intersection_states_of_idx,
         new_bool_dec,
+        matrix_format=automaton1.matrix_format
     )
 
 
 def tensor_based_rpq(
-    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int]
+    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int], matrix_format: str = "csr",
 ) -> set[tuple[int, int]]:
     reg_graph = regex_to_dfa(regex)
-    aut1 = AdjacencyMatrixFA(reg_graph)
-    aut2 = AdjacencyMatrixFA(graph_to_nfa(graph, start_nodes, final_nodes))
+    aut1 = AdjacencyMatrixFA(reg_graph, matrix_format=matrix_format)
+    aut2 = AdjacencyMatrixFA(graph_to_nfa(graph, start_nodes, final_nodes), matrix_format=matrix_format)
 
     intersection = intersect_automata(aut1, aut2)
     ind_of_st = intersection.index_of_state

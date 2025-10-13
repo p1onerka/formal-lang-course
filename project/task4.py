@@ -1,31 +1,33 @@
 from networkx import MultiDiGraph
 from scipy.sparse import csr_matrix, vstack
+import scipy.sparse as scsp
 
 from project.task3 import AdjacencyMatrixFA
 from project.task2 import regex_to_dfa, graph_to_nfa
 
 
 def _build_front(
-    aut1_len: int, aut2_len: int, aut1_start: set[int], aut2_start: set[int]
-) -> csr_matrix:
+    aut1_len: int, aut2_len: int, aut1_start: set[int], aut2_start: set[int], matrix_format: str = "csr"
+) -> scsp.spmatrix:
     fronts_by_starts = list()
+    matrix_ctor = getattr(scsp, f"{matrix_format}_matrix", csr_matrix)
 
     for i in sorted(aut1_start):
         front_arr = [[False for _ in range(aut2_len)] for _ in range(aut1_len)]
         for j in aut2_start:
             front_arr[i][j] = True
-        fronts_by_starts.append(csr_matrix(front_arr))
-    front = vstack(fronts_by_starts, format="csr", dtype=bool)
+        fronts_by_starts.append(matrix_ctor(front_arr))
+    front = vstack(fronts_by_starts, format=matrix_format, dtype=bool)
     return front
 
 
 def ms_bfs_based_rpq(
-    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int]
+    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int], matrix_format: str = "csr",
 ) -> set[tuple[int, int]]:
     aut1 = graph_to_nfa(graph, start_nodes, final_nodes)
     aut2 = regex_to_dfa(regex)
-    adj1 = AdjacencyMatrixFA(aut1)
-    adj2 = AdjacencyMatrixFA(aut2)
+    adj1 = AdjacencyMatrixFA(aut1, matrix_format=matrix_format)
+    adj2 = AdjacencyMatrixFA(aut2, matrix_format=matrix_format)
 
     aut1_start_st_ind = set()
     for start_state in aut1.start_states:
@@ -38,6 +40,7 @@ def ms_bfs_based_rpq(
         len(aut2.states),
         sorted(list(aut1_start_st_ind)),
         aut2_start_st_ind,
+        matrix_format=matrix_format
     )
 
     bool_dec_transposed = dict()
@@ -46,11 +49,12 @@ def ms_bfs_based_rpq(
             {symbol: adj1.boolean_decompress.get(symbol).transpose()}
         )
 
+    matrix_ctor = getattr(scsp, f"{matrix_format}_matrix", csr_matrix)
     visited = front
     shared_labels = adj1.labels.intersection(adj2.labels)
     finished = False
     while not finished:
-        current_front_sum = csr_matrix(
+        current_front_sum = matrix_ctor(
             (len(aut1.states) * len(start_nodes), len(aut2.states)), dtype=bool
         )
         for label in shared_labels:
@@ -63,7 +67,7 @@ def ms_bfs_based_rpq(
                 ]
                 new_block = aut1_mat @ cur_b
                 blocks.append(new_block)
-            symbol_front = vstack(blocks, format="csr")
+            symbol_front = vstack(blocks, format=matrix_format)
             result = symbol_front @ aut2_mat
             current_front_sum += result
         front = current_front_sum
