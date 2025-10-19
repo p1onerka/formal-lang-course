@@ -153,7 +153,9 @@ def build_AdjMatrixFA_with_artefacts(
             for snd_state in states:
                 if mat[index_of_state.get(fst_state), index_of_state.get(snd_state)]:
                     nfa.add_transition(fst_state, symbol, snd_state)
-    mat = AdjacencyMatrixFA(nfa, index_mapping=(index_of_state, state_of_index), matrix_format=matrix_format)
+    mat = AdjacencyMatrixFA(
+        nfa, index_mapping=(index_of_state, state_of_index), matrix_format=matrix_format
+    )
     return mat
 
 
@@ -201,16 +203,22 @@ def intersect_automata(
         intersection_idxes,
         intersection_states_of_idx,
         new_bool_dec,
-        matrix_format=automaton1.matrix_format
+        matrix_format=automaton1.matrix_format,
     )
 
 
 def tensor_based_rpq(
-    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int], matrix_format: str = "csr",
+    regex: str,
+    graph: MultiDiGraph,
+    start_nodes: set[int],
+    final_nodes: set[int],
+    matrix_format: str = "csr",
 ) -> set[tuple[int, int]]:
     reg_graph = regex_to_dfa(regex)
     aut1 = AdjacencyMatrixFA(reg_graph, matrix_format=matrix_format)
-    aut2 = AdjacencyMatrixFA(graph_to_nfa(graph, start_nodes, final_nodes), matrix_format=matrix_format)
+    aut2 = AdjacencyMatrixFA(
+        graph_to_nfa(graph, start_nodes, final_nodes), matrix_format=matrix_format
+    )
 
     intersection = intersect_automata(aut1, aut2)
     ind_of_st = intersection.index_of_state

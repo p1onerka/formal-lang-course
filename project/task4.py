@@ -7,7 +7,11 @@ from project.task2 import regex_to_dfa, graph_to_nfa
 
 
 def _build_front(
-    aut1_len: int, aut2_len: int, aut1_start: set[int], aut2_start: set[int], matrix_format: str = "csr"
+    aut1_len: int,
+    aut2_len: int,
+    aut1_start: set[int],
+    aut2_start: set[int],
+    matrix_format: str = "csr",
 ) -> scsp.spmatrix:
     fronts_by_starts = list()
     matrix_ctor = getattr(scsp, f"{matrix_format}_matrix", csr_matrix)
@@ -22,7 +26,11 @@ def _build_front(
 
 
 def ms_bfs_based_rpq(
-    regex: str, graph: MultiDiGraph, start_nodes: set[int], final_nodes: set[int], matrix_format: str = "csr",
+    regex: str,
+    graph: MultiDiGraph,
+    start_nodes: set[int],
+    final_nodes: set[int],
+    matrix_format: str = "csr",
 ) -> set[tuple[int, int]]:
     aut1 = graph_to_nfa(graph, start_nodes, final_nodes)
     aut2 = regex_to_dfa(regex)
@@ -40,7 +48,7 @@ def ms_bfs_based_rpq(
         len(aut2.states),
         sorted(list(aut1_start_st_ind)),
         aut2_start_st_ind,
-        matrix_format=matrix_format
+        matrix_format=matrix_format,
     )
 
     bool_dec_transposed = dict()
