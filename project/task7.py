@@ -35,12 +35,10 @@ def _matrix_nonterminal_rules(
     cfg: CFG,
     bool_dec: dict[Variable, scsp.spmatrix],
 ) -> dict[Variable, scsp.spmatrix]:
-    body_of_head = dict()
     var_to_its_body_rules = defaultdict(list)
     changed_nonterms = []
     for rule in cfg.productions:
         if len(rule.body) == 2:
-            body_of_head.update({rule.head: rule.body})
             var_to_its_body_rules[rule.body[0]].append(rule)
             var_to_its_body_rules[rule.body[1]].append(rule)
         # if length of body < 2, then this rule is either A -> a or Ni -> eps
