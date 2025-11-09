@@ -6,11 +6,14 @@ import scipy.sparse as scsp
 from project.task2 import graph_to_nfa
 from project.task3 import AdjacencyMatrixFA, intersect_automata
 
+
 def cfg_to_rsm(cfg: CFG) -> RecursiveAutomaton:
     return RecursiveAutomaton.from_text(cfg.to_text())
 
+
 def ebnf_to_rsm(ebnf: str) -> RecursiveAutomaton:
-  return RecursiveAutomaton.from_text(ebnf)
+    return RecursiveAutomaton.from_text(ebnf)
+
 
 def _build_rsm_fa(rsm: RecursiveAutomaton) -> NondeterministicFiniteAutomaton:
     rsm_trans = []
@@ -25,9 +28,12 @@ def _build_rsm_fa(rsm: RecursiveAutomaton) -> NondeterministicFiniteAutomaton:
         for st in box.final_states:
             rsm_fin.add(State((sym, st.value)))
 
-    rsm_fa = NondeterministicFiniteAutomaton(start_state=rsm_start, final_states=rsm_fin)
+    rsm_fa = NondeterministicFiniteAutomaton(
+        start_state=rsm_start, final_states=rsm_fin
+    )
     rsm_fa.add_transitions(rsm_trans)
     return rsm_fa
+
 
 def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrixFA):
     n = len(intersection.states)
@@ -72,8 +78,11 @@ def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrix
 
     return reachability, edge_usage
 
+
 # MSBFS should search all paths from RSM-start to RSM-fin, regardless of graph start and end vertices
-def _define_start_states(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrixFA) -> set[State]:
+def _define_start_states(
+    intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrixFA
+) -> set[State]:
     rsm_starts = adj_rsm.start_states
     res = []
     for st in intersection.states:
@@ -83,7 +92,13 @@ def _define_start_states(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatr
     return res
 
 
-def _add_nonterms(reachability: scsp.spmatrix, adj_graph: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrixFA, intersection: AdjacencyMatrixFA, edges) -> tuple[AdjacencyMatrixFA, bool]:
+def _add_nonterms(
+    reachability: scsp.spmatrix,
+    adj_graph: AdjacencyMatrixFA,
+    adj_rsm: AdjacencyMatrixFA,
+    intersection: AdjacencyMatrixFA,
+    edges,
+) -> tuple[AdjacencyMatrixFA, bool]:
     new_nonterm_added = False
     rows, cols = reachability.nonzero()
     for i, j in zip(rows, cols):
@@ -91,33 +106,45 @@ def _add_nonterms(reachability: scsp.spmatrix, adj_graph: AdjacencyMatrixFA, adj
         gr_fin, rsm_fin = intersection.state_of_index.get(j).value
         start_rsm_box, _ = rsm_start.value
         fin_rsm_box, _ = rsm_fin.value
-        if start_rsm_box == fin_rsm_box and rsm_start in adj_rsm.start_states and rsm_fin in adj_rsm.final_states:
+        if (
+            start_rsm_box == fin_rsm_box
+            and rsm_start in adj_rsm.start_states
+            and rsm_fin in adj_rsm.final_states
+        ):
             if not start_rsm_box in adj_graph.boolean_decompress:
                 n = len(adj_graph.states)
-                matrix_ctor = getattr(scsp, f"{adj_graph.matrix_format}_matrix", scsp.csr_matrix)
+                matrix_ctor = getattr(
+                    scsp, f"{adj_graph.matrix_format}_matrix", scsp.csr_matrix
+                )
                 new_nonterm_added = True
                 nonterm_mat = matrix_ctor((n, n), dtype=bool)
-                nonterm_mat[adj_graph.index_of_state.get(gr_start), adj_graph.index_of_state.get(gr_fin)] = True
+                nonterm_mat[
+                    adj_graph.index_of_state.get(gr_start),
+                    adj_graph.index_of_state.get(gr_fin),
+                ] = True
                 adj_graph.boolean_decompress.update({start_rsm_box: nonterm_mat})
                 adj_graph.labels.add(start_rsm_box)
             else:
                 nonterm_mat = adj_graph.boolean_decompress.get(start_rsm_box)
-                if not nonterm_mat[adj_graph.index_of_state.get(gr_start), adj_graph.index_of_state.get(gr_fin)]:
+                if not nonterm_mat[
+                    adj_graph.index_of_state.get(gr_start),
+                    adj_graph.index_of_state.get(gr_fin),
+                ]:
                     new_nonterm_added = True
-                    nonterm_mat[adj_graph.index_of_state.get(gr_start), adj_graph.index_of_state.get(gr_fin)] = True
+                    nonterm_mat[
+                        adj_graph.index_of_state.get(gr_start),
+                        adj_graph.index_of_state.get(gr_fin),
+                    ] = True
                     adj_graph.boolean_decompress.update({start_rsm_box: nonterm_mat})
     return (adj_graph, new_nonterm_added)
 
 
-
-
-
 def tensor_based_cfpq(
-  rsm: RecursiveAutomaton,
-  graph: nx.DiGraph,
-  start_nodes: set[int] = None,
-  final_nodes: set[int] = None,
-  matrix_format="csr",
+    rsm: RecursiveAutomaton,
+    graph: nx.DiGraph,
+    start_nodes: set[int] = None,
+    final_nodes: set[int] = None,
+    matrix_format="csr",
 ) -> set[tuple[int, int]]:
     matrix_ctor = getattr(scsp, f"{matrix_format}_matrix", scsp.csr_matrix)
     if start_nodes is None:
@@ -130,13 +157,16 @@ def tensor_based_cfpq(
     fa_rsm = _build_rsm_fa(rsm)
     adj_rsm = AdjacencyMatrixFA(fa_rsm, matrix_format=matrix_format)
 
-
     info_added = True
     while info_added:
         info_added = False
         intersection = intersect_automata(adj_graph, adj_rsm)
-        reachability, edges_reachable_from_start = _ms_bfs_with_paths(intersection, adj_rsm)
-        adj_graph, info_added = _add_nonterms(reachability, adj_graph, adj_rsm, intersection, edges_reachable_from_start)
+        reachability, edges_reachable_from_start = _ms_bfs_with_paths(
+            intersection, adj_rsm
+        )
+        adj_graph, info_added = _add_nonterms(
+            reachability, adj_graph, adj_rsm, intersection, edges_reachable_from_start
+        )
 
     res = set()
     if rsm.initial_label in adj_graph.boolean_decompress:
