@@ -73,7 +73,6 @@ def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrix
     rows, cols = reachability.nonzero()
     for i, j in zip(rows, cols):
         s = intersection.state_of_index.get(i)
-        f = intersection.state_of_index.get(j)
 
     return reachability, edge_usage
 
