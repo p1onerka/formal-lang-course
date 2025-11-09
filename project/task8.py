@@ -40,19 +40,12 @@ def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrix
     matrix_ctor = getattr(scsp, f"{intersection.matrix_format}_matrix", scsp.csr_matrix)
 
     bool_dec = intersection.boolean_decompress
-    for sym in bool_dec:
-        mat = bool_dec.get(sym)
-        rows, cols = mat.nonzero()
-        for i, j in zip(rows, cols):
-            s = intersection.state_of_index.get(i)
 
     reachability = matrix_ctor((n, n), dtype=bool)
     start_st = _define_start_states(intersection, adj_rsm)
     for s in start_st:
         i = intersection.index_of_state[s]
         reachability[i, i] = True
-
-    edge_usage = []
 
     finished = False
     while not finished:
@@ -64,17 +57,7 @@ def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrix
                 reachability = reachability + sym_reach
                 finished = False
 
-                rows, cols = new_edges.nonzero()
-                for i, j in zip(rows, cols):
-                    s_from = intersection.state_of_index[i]
-                    s_to = intersection.state_of_index[j]
-                    edge_usage.append((s_from, sym, s_to))
-
-    rows, cols = reachability.nonzero()
-    for i, j in zip(rows, cols):
-        s = intersection.state_of_index.get(i)
-
-    return reachability, edge_usage
+    return reachability
 
 
 # MSBFS should search all paths from RSM-start to RSM-fin, regardless of graph start and end vertices
@@ -95,7 +78,6 @@ def _add_nonterms(
     adj_graph: AdjacencyMatrixFA,
     adj_rsm: AdjacencyMatrixFA,
     intersection: AdjacencyMatrixFA,
-    edges,
 ) -> tuple[AdjacencyMatrixFA, bool]:
     new_nonterm_added = False
     rows, cols = reachability.nonzero()
@@ -144,11 +126,6 @@ def tensor_based_cfpq(
     final_nodes: set[int] = None,
     matrix_format="csr",
 ) -> set[tuple[int, int]]:
-    if start_nodes is None:
-        start_nodes = graph.nodes
-    if final_nodes is None:
-        final_nodes = graph.nodes
-
     fa_graph = graph_to_nfa(graph, start_nodes, final_nodes)
     adj_graph = AdjacencyMatrixFA(fa_graph, matrix_format=matrix_format)
     fa_rsm = _build_rsm_fa(rsm)
@@ -158,11 +135,9 @@ def tensor_based_cfpq(
     while info_added:
         info_added = False
         intersection = intersect_automata(adj_graph, adj_rsm)
-        reachability, edges_reachable_from_start = _ms_bfs_with_paths(
-            intersection, adj_rsm
-        )
+        reachability = _ms_bfs_with_paths(intersection, adj_rsm)
         adj_graph, info_added = _add_nonterms(
-            reachability, adj_graph, adj_rsm, intersection, edges_reachable_from_start
+            reachability, adj_graph, adj_rsm, intersection
         )
 
     res = set()
@@ -172,6 +147,8 @@ def tensor_based_cfpq(
         for i, j in zip(rows, cols):
             s = adj_graph.state_of_index.get(i)
             f = adj_graph.state_of_index.get(j)
-            if (s in start_nodes) and (f in final_nodes):
+            if (not start_nodes or s in start_nodes) and (
+                not final_nodes or f in final_nodes
+            ):
                 res.add((s, f))
     return res
