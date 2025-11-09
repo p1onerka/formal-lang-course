@@ -45,7 +45,6 @@ def _ms_bfs_with_paths(intersection: AdjacencyMatrixFA, adj_rsm: AdjacencyMatrix
         rows, cols = mat.nonzero()
         for i, j in zip(rows, cols):
             s = intersection.state_of_index.get(i)
-            f = intersection.state_of_index.get(j)
 
     reachability = matrix_ctor((n, n), dtype=bool)
     start_st = _define_start_states(intersection, adj_rsm)
@@ -111,7 +110,7 @@ def _add_nonterms(
             and rsm_start in adj_rsm.start_states
             and rsm_fin in adj_rsm.final_states
         ):
-            if not start_rsm_box in adj_graph.boolean_decompress:
+            if start_rsm_box not in adj_graph.boolean_decompress:
                 n = len(adj_graph.states)
                 matrix_ctor = getattr(
                     scsp, f"{adj_graph.matrix_format}_matrix", scsp.csr_matrix
@@ -146,7 +145,6 @@ def tensor_based_cfpq(
     final_nodes: set[int] = None,
     matrix_format="csr",
 ) -> set[tuple[int, int]]:
-    matrix_ctor = getattr(scsp, f"{matrix_format}_matrix", scsp.csr_matrix)
     if start_nodes is None:
         start_nodes = graph.nodes
     if final_nodes is None:
