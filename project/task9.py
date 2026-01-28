@@ -30,7 +30,9 @@ class StackFrame:
         self.visited_vertices = set()
 
 
-def link_frames(frame: StackFrame, edge_state: BoxState, parent_frame: StackFrame) -> set[Descriptor]:
+def link_frames(
+    frame: StackFrame, edge_state: BoxState, parent_frame: StackFrame
+) -> set[Descriptor]:
     bucket = frame.edges.setdefault(edge_state, set())
     if parent_frame in bucket:
         return set()
@@ -64,7 +66,9 @@ class GLLContext:
     stack_frames: dict[tuple[BoxState, int], StackFrame]
     start_state: BoxState
     fin_frame: StackFrame
-    processing_queue: set[Descriptor] #doesn't really need to be strictly queue because the order of descriptors processing is arbitrary
+    processing_queue: set[
+        Descriptor
+    ]  # doesn't really need to be strictly queue because the order of descriptors processing is arbitrary
     visited: set[Descriptor]
     result: set[tuple[int, int]]
 
@@ -72,19 +76,16 @@ class GLLContext:
         self.graph = graph
         self.stack_frames = {}
         self.start_state = BoxState(
-            rsm.initial_label,
-            rsm.boxes[rsm.initial_label].dfa.start_state.value
+            rsm.initial_label, rsm.boxes[rsm.initial_label].dfa.start_state.value
         )
         self.fin_frame = StackFrame(BoxState(Symbol("$"), State("fin")), -1)
         self.processing_queue = set()
         self.visited = set()
         self.result = set()
 
-
         self.graph_edges = {}
         for fst, snd, lbl in graph.edges(data="label"):
             self.graph_edges.setdefault(fst, {}).setdefault(lbl, set()).add(snd)
-
 
         self.rsm_data = {}
         for sym, box in rsm.boxes.items():
@@ -93,7 +94,7 @@ class GLLContext:
             for state in graph_box.nodes:
                 data[state] = BoxTransitions(is_final=(state in box.dfa.final_states))
             for fst, snd, lbl in graph_box.edges(data="label"):
-                #print(f"i have label {lbl}")
+                # print(f"i have label {lbl}")
                 if Symbol(lbl) not in rsm.boxes:
                     data[fst].terminals[lbl] = BoxState(sym, snd)
                 else:
@@ -133,7 +134,6 @@ def gll_based_cfpq(
     start_nodes: set[int] = None,
     final_nodes: set[int] = None,
 ) -> set[tuple[int, int]]:
-
     gll = GLLContext(rsm, graph)
     if not start_nodes:
         start_nodes = graph.nodes()
